@@ -3,10 +3,24 @@
 from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor, Adafruit_StepperMotor
 import time
 import atexit
+#Imports
+import pygame, sys
 #import _thread
 from threading import Thread
 import RPi.GPIO as GPIO
 import curses
+
+#Constants
+WIDTH, HEIGHT = 400, 400
+TITLE = "Gantry Controller"
+
+#pygame initialization
+pygame.init()
+win = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption(TITLE)
+clock = pygame.time.Clock()
+
+
 # create a default object, no changes to I2C address or frequency
 #17(platfomright),22(bottomright),23(topright),27(plaformleft)switches
 
@@ -72,6 +86,53 @@ def goToXY(steps,direction):
     #_thread.start_new_thread(motorRun,(2,stepper2,steps,))
     #_thread.join()
 atexit.register(turnOffMotors)
+
+#Player Class
+class Player:
+    def __init__(self, x, y):
+        self.x = int(x)
+        self.y = int(y)
+        self.rect = pygame.Rect(self.x, self.y, 150, 150)
+        self.color = (250, 120, 60)
+        self.velX = 0
+        self.velY = 0
+        self.left_pressed = False
+        self.right_pressed = False
+        self.up_pressed = False
+        self.down_pressed = False
+        self.speed = 4
+    
+    def draw(self, win):
+        pygame.draw.rect(win, self.color, self.rect)
+    
+    def update(self):
+        self.velX = 0
+        self.velY = 0
+
+        if self.left_pressed and not self.right_pressed:
+            self.velX = -self.speed
+            goToXY(10,"left")
+        if self.right_pressed and not self.left_pressed:
+            self.velX = self.speed
+            goToXY(10,"right")
+        if self.up_pressed and not self.down_pressed:
+            self.velY = -self.speed
+            goToXY(10,"up")
+        if self.down_pressed and not self.up_pressed:
+            self.velY = self.speed
+            goToXY(10,"down")
+        if self.x <= 230 and self.x >= 20 and self.y<= 230 and self.y >= 20:
+            
+            self.x += self.velX
+            self.y += self.velY
+        if not self.left_pressed and not self.right_pressed and not self.up_pressed and not self.down_pressed:
+            self.x = 125 
+            self.y = 125 
+        self.rect = pygame.Rect(int(self.x), int(self.y), 150, 150)
+
+#Player Initialization
+player = Player(WIDTH/2, HEIGHT/2)
+
 def main():
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(17,GPIO.IN, pull_up_down=GPIO.PUD_UP) #Reed
@@ -87,52 +148,40 @@ def main():
     # goToXY(1000,"right")
     # goToXY(1000,"down")
     # time.sleep(10000)
-    screen = curses.initscr()
-    curses.noecho() 
-    curses.cbreak()
-    screen.keypad(True)
+    while True:
 
-    try:    
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    player.left_pressed = True
+                if event.key == pygame.K_RIGHT:
+                    player.right_pressed = True
+                if event.key == pygame.K_UP:
+                    player.up_pressed = True
+                if event.key == pygame.K_DOWN:
+                    player.down_pressed = True
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_LEFT:
+                    player.left_pressed = False
+                if event.key == pygame.K_RIGHT:
+                    player.right_pressed = False
+                if event.key == pygame.K_UP:
+                    player.up_pressed = False
+                if event.key == pygame.K_DOWN:
+                    player.down_pressed = False
             
-            while True:
-                
-                char = screen.getch()
-                if char == ord('q'):
-                 
-                    break
-                elif char == curses.KEY_UP:
-                    
-                    print("up")
-                    goToXY(10,"up")
-                    
-              
-                    
-                    
-                elif char == curses.KEY_DOWN:
-                    
-                    goToXY(10,"down")
-                    print("down")
-                   
-                elif char == curses.KEY_RIGHT:
-                 
-                    print("right")
-                    goToXY(10,"right")
-                    
-                elif char == curses.KEY_LEFT:
-                 
-                    print("left")
-                    goToXY(10,"left")
-                  
-                elif char == ord('s'):
-               
-                    print("stop")
-                    turnOffMotors()
-                curses.flushinp()
-                
-    finally:
-        #Close down curses properly, inc turn echo back on!
-        curses.nocbreak(); screen.keypad(0); curses.echo()
-        curses.endwin()
+        #Draw
+        win.fill((12, 24, 36))  
+        player.draw(win)
+
+        #update
+        player.update()
+        pygame.display.flip()
+
+        clock.tick(120)
         GPIO.cleanup()
 
 main()
