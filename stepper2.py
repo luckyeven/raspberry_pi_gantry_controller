@@ -85,7 +85,12 @@ def goToXY(steps,direction):
     #_thread.start_new_thread(motorRun,(1,stepper1,steps,))
     #_thread.start_new_thread(motorRun,(2,stepper2,steps,))
     #_thread.join()
+
+# push button
+def pushButton():
+    print("push")
 atexit.register(turnOffMotors)
+
 
 #Player Class
 class Player:
@@ -94,8 +99,10 @@ class Player:
         self.y = int(y)
         self.rect = pygame.Rect(self.x, self.y, 150, 150)
         self.color = (250, 120, 60)
+        self.color_click = (200, 200, 200)
         self.velX = 0
         self.velY = 0
+        self.space_pressed = False
         self.left_pressed = False
         self.right_pressed = False
         self.up_pressed = False
@@ -121,11 +128,15 @@ class Player:
         if self.down_pressed and not self.up_pressed:
             self.velY = self.speed
             goToXY(10,"down")
+        if self.space_pressed:
+            pushButton()
+            win.fill((12, 24, 36))
+            pygame.draw.rect(win, self.color_click, self.rect)
         if self.x <= 230 and self.x >= 20 and self.y<= 230 and self.y >= 20:
             
             self.x += self.velX
             self.y += self.velY
-        if not self.left_pressed and not self.right_pressed and not self.up_pressed and not self.down_pressed:
+        if not self.left_pressed and not self.right_pressed and not self.up_pressed and not self.down_pressed and not self.space_pressed:
             self.x = 125 
             self.y = 125 
         self.rect = pygame.Rect(int(self.x), int(self.y), 150, 150)
@@ -163,6 +174,8 @@ def main():
                     player.up_pressed = True
                 if event.key == pygame.K_DOWN:
                     player.down_pressed = True
+                if event.key == pygame.K_SPACE:
+                    player.space_pressed = True
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT:
                     player.left_pressed = False
@@ -172,6 +185,8 @@ def main():
                     player.up_pressed = False
                 if event.key == pygame.K_DOWN:
                     player.down_pressed = False
+                if event.key == pygame.K_SPACE:
+                    player.space_pressed = False
             
         #Draw
         win.fill((12, 24, 36))  
